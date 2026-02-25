@@ -59,11 +59,13 @@ class _ProductListingScreenState extends State<ProductListingScreen>
 
     // Fetch initial data after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       _fetchCurrentTab();
     });
 
     // Fetch data when tab changes
     _tabController.addListener(() {
+      if (!mounted) return;
       if (!_tabController.indexIsChanging) {
         _fetchCurrentTab();
       }
@@ -71,13 +73,17 @@ class _ProductListingScreenState extends State<ProductListingScreen>
   }
 
   void _fetchCurrentTab() {
+    if (!mounted) return;
     final category = _tabs[_tabController.index].category;
     context.read<ProductProvider>().fetchProducts(category);
   }
 
   Future<void> _refreshCurrentTab() async {
+    if (!mounted) return;
     final category = _tabs[_tabController.index].category;
-    await context.read<ProductProvider>().refresh(category);
+    final provider = context.read<ProductProvider>();
+    await provider.refresh(category);
+    // No post-await widget interaction needed — Provider handles rebuild
   }
 
   @override
@@ -94,10 +100,20 @@ class _ProductListingScreenState extends State<ProductListingScreen>
       body: RefreshIndicator(
         onRefresh: _refreshCurrentTab,
         color: const Color(0xFFF85606),
+        // Accept scroll notifications from ANY depth.
+        // NestedScrollView's inner scrollables fire at depth > 0,
+        // and we need to detect pull-to-refresh from inside tabs too.
+        notificationPredicate: (notification) => true,
         child: NestedScrollView(
           // floatHeaderSlivers: true allows the header to re-appear
           // on a slight scroll-up AND enables RefreshIndicator to work.
           floatHeaderSlivers: true,
+          // BouncingScrollPhysics enables over-scroll on ALL platforms
+          // (including web, where ClampingScrollPhysics is the default).
+          // This is required for RefreshIndicator to detect the pull gesture.
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
               // ── 1. Collapsible Header (banner + search bar) ────────
@@ -253,13 +269,31 @@ class _TabContentState extends State<_TabContent>
     super.initState();
     // Fetch products for this tab if not already loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       context.read<ProductProvider>().fetchProducts(widget.category);
     });
+  }
+
+  /// Responsive column count based on screen width.
+  static int _crossAxisCount(double width) {
+    if (width >= 1200) return 5;
+    if (width >= 900) return 4;
+    if (width >= 600) return 3;
+    return 2;
+  }
+
+  /// Responsive aspect ratio — wider screens get slightly wider cards.
+  static double _childAspectRatio(double width) {
+    if (width >= 900) return 0.70;
+    return 0.65;
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required by AutomaticKeepAliveClientMixin
+    final screenWidth = MediaQuery.of(context).size.width;
+    final columns = _crossAxisCount(screenWidth);
+    final aspectRatio = _childAspectRatio(screenWidth);
 
     return Consumer<ProductProvider>(
       builder: (context, provider, child) {
@@ -289,7 +323,11 @@ class _TabContentState extends State<_TabContent>
 
                   // ── Loading State ────────────────────────────────────
                   if (isLoading && products.isEmpty)
-                    const ProductGridShimmer(itemCount: 6),
+                    ProductGridShimmer(
+                      itemCount: columns * 2,
+                      crossAxisCount: columns,
+                      childAspectRatio: aspectRatio,
+                    ),
 
                   // ── Error State ──────────────────────────────────────
                   if (error != null && products.isEmpty)
@@ -306,13 +344,12 @@ class _TabContentState extends State<_TabContent>
                     SliverPadding(
                       padding: const EdgeInsets.all(8),
                       sliver: SliverGrid(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 0.65,
-                              crossAxisSpacing: 8,
-                              mainAxisSpacing: 8,
-                            ),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          childAspectRatio: aspectRatio,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) =>
                               ProductCard(product: products[index]),

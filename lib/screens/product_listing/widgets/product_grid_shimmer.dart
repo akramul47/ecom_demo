@@ -6,17 +6,24 @@ import 'package:shimmer/shimmer.dart';
 /// Shown while products are being fetched from the API.
 class ProductGridShimmer extends StatelessWidget {
   final int itemCount;
+  final int crossAxisCount;
+  final double childAspectRatio;
 
-  const ProductGridShimmer({super.key, this.itemCount = 6});
+  const ProductGridShimmer({
+    super.key,
+    this.itemCount = 6,
+    this.crossAxisCount = 2,
+    this.childAspectRatio = 0.65,
+  });
 
   @override
   Widget build(BuildContext context) {
     return SliverPadding(
       padding: const EdgeInsets.all(8),
       sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.65,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          childAspectRatio: childAspectRatio,
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
         ),
