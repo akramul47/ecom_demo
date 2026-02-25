@@ -97,81 +97,87 @@ class _ProductListingScreenState extends State<ProductListingScreen>
     return Scaffold(
       // RefreshIndicator wraps the entire NestedScrollView so that
       // pull-to-refresh works from ANY tab, as required.
-      body: RefreshIndicator(
-        onRefresh: _refreshCurrentTab,
-        color: const Color(0xFFF85606),
-        // Accept scroll notifications from ANY depth.
-        // NestedScrollView's inner scrollables fire at depth > 0,
-        // and we need to detect pull-to-refresh from inside tabs too.
-        notificationPredicate: (notification) => true,
-        child: NestedScrollView(
-          // floatHeaderSlivers: true allows the header to re-appear
-          // on a slight scroll-up AND enables RefreshIndicator to work.
-          floatHeaderSlivers: true,
-          // BouncingScrollPhysics enables over-scroll on ALL platforms
-          // (including web, where ClampingScrollPhysics is the default).
-          // This is required for RefreshIndicator to detect the pull gesture.
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
-              // ── 1. Collapsible Header (banner + search bar) ────────
-              SliverAppBar(
-                expandedHeight: 180.0,
-                floating: true,
-                pinned: false, // Collapses fully — only tab bar pins
-                snap: true,
-                backgroundColor: const Color(0xFFF85606),
-                flexibleSpace: FlexibleSpaceBar(
-                  background: _buildBanner(context),
-                ),
-                // Search bar in the app bar
-                title: _buildSearchBar(),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.person_outline),
-                    onPressed: () => _navigateToProfile(context),
+      body: SafeArea(
+        top: true,
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: _refreshCurrentTab,
+          color: const Color(0xFFF85606),
+          // Accept scroll notifications from ANY depth.
+          // NestedScrollView's inner scrollables fire at depth > 0,
+          // and we need to detect pull-to-refresh from inside tabs too.
+          notificationPredicate: (notification) => true,
+          child: NestedScrollView(
+            // floatHeaderSlivers: true allows the header to re-appear
+            // on a slight scroll-up AND enables RefreshIndicator to work.
+            floatHeaderSlivers: true,
+            // BouncingScrollPhysics enables over-scroll on ALL platforms
+            // (including web, where ClampingScrollPhysics is the default).
+            // This is required for RefreshIndicator to detect the pull gesture.
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
+                // ── 1. Collapsible Header (banner + search bar) ────────
+                SliverAppBar(
+                  expandedHeight: 180.0,
+                  floating: true,
+                  pinned: false, // Collapses fully — only tab bar pins
+                  snap: true,
+                  backgroundColor: const Color(0xFFF85606),
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: _buildBanner(context),
                   ),
-                ],
-              ),
-
-              // ── 2. Pinned Tab Bar ──────────────────────────────────
-              // SliverOverlapAbsorber tells NestedScrollView how much
-              // of the header overlaps the body, so that the
-              // SliverOverlapInjector in each tab can offset correctly.
-              SliverOverlapAbsorber(
-                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
-                  context,
-                ),
-                sliver: SliverPersistentHeader(
-                  pinned: true, // STAYS VISIBLE once header collapses
-                  delegate: StickyTabBarDelegate(
-                    tabBar: TabBar(
-                      controller: _tabController,
-                      isScrollable: true,
-                      tabAlignment: TabAlignment.start,
-                      tabs: _tabs.map((t) => Tab(text: t.label)).toList(),
+                  // Search bar in the app bar
+                  title: _buildSearchBar(),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.person_outline),
+                      onPressed: () => _navigateToProfile(context),
                     ),
-                    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                  ],
+                ),
+
+                // ── 2. Pinned Tab Bar ──────────────────────────────────
+                // SliverOverlapAbsorber tells NestedScrollView how much
+                // of the header overlaps the body, so that the
+                // SliverOverlapInjector in each tab can offset correctly.
+                SliverOverlapAbsorber(
+                  handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
+                    context,
+                  ),
+                  sliver: SliverPersistentHeader(
+                    pinned: true, // STAYS VISIBLE once header collapses
+                    delegate: StickyTabBarDelegate(
+                      tabBar: TabBar(
+                        controller: _tabController,
+                        isScrollable: true,
+                        tabAlignment: TabAlignment.start,
+                        tabs: _tabs.map((t) => Tab(text: t.label)).toList(),
+                      ),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).scaffoldBackgroundColor,
+                    ),
                   ),
                 ),
-              ),
-            ];
-          },
+              ];
+            },
 
-          // ── 3. Tab Content (horizontal swipe via TabBarView) ────────
-          //
-          // GESTURE ISOLATION:
-          // TabBarView uses HorizontalDragGestureRecognizer.
-          // NestedScrollView uses VerticalDragGestureRecognizer.
-          // Flutter's GestureArena naturally separates them by axis.
-          // No custom gesture code needed.
-          body: TabBarView(
-            controller: _tabController,
-            children: _tabs
-                .map((t) => _TabContent(category: t.category))
-                .toList(),
+            // ── 3. Tab Content (horizontal swipe via TabBarView) ────────
+            //
+            // GESTURE ISOLATION:
+            // TabBarView uses HorizontalDragGestureRecognizer.
+            // NestedScrollView uses VerticalDragGestureRecognizer.
+            // Flutter's GestureArena naturally separates them by axis.
+            // No custom gesture code needed.
+            body: TabBarView(
+              controller: _tabController,
+              children: _tabs
+                  .map((t) => _TabContent(category: t.category))
+                  .toList(),
+            ),
           ),
         ),
       ),
